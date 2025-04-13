@@ -1,11 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Root layout is a FrameLayout to allow overlaying buttons on top of the full-screen image -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- 📸 Full-screen image view to display the captured photo -->
     <ImageView
         android:id="@+id/fullImageView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="fitCenter"/>
+        android:scaleType="fitCenter" />
+
+    <!-- ✅ Button to confirm and save the photo -->
+    <Button
+        android:id="@+id/btnConfirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save Photo"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp" />
+
+    <!-- ❌ Button to cancel/discard the photo and return to the map -->
+    <Button
+        android:id="@+id/btnCancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp" />
+
 </FrameLayout>

@@ -1,5 +1,7 @@
+// Package declaration
 package com.example.campusmaplogger
 
+// Importing necessary Android and Google Maps libraries
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -8,61 +10,108 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
+// Google Maps functionality
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+
+// View binding for XML layout
 import com.example.campusmaplogger.databinding.ActivityMapsBinding
+
+// Location services to track user location
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 
+// For handling image capture intents and URIs
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
 import java.io.File
 
+// Secure file sharing between app and camera intent
 import androidx.core.content.FileProvider
+
+// Formatting timestamps for saved photo filenames
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// For saving files to external app storage
 import android.os.Environment
 
+// UI visibility and interaction
 import android.view.View
 
+// Handling and resizing images
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+
+// For requesting periodic location updates
 import android.os.Looper
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
+// Callback classes to listen for location updates
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.model.Marker
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+// Alert dialog for editing marker titles/snippets
+import android.app.AlertDialog
+import android.widget.EditText
+import android.widget.LinearLayout
 
+class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+    // Request code used when confirming a photo in FullPhotoActivity
+    private val PHOTO_CONFIRM_REQUEST = 2
+
+    // Stores the last captured photo's URI and its corresponding location
+    private var lastCapturedUri: Uri? = null
+    private var lastCapturedLatLng: LatLng? = null
+
+    // Reference to the Google Map object
     private lateinit var mMap: GoogleMap
+
+    // View binding object for accessing layout views
     private lateinit var binding: ActivityMapsBinding
+
+    // Location client for retrieving device location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
+    // Request code used when taking a photo with the camera
     private val REQUEST_IMAGE_CAPTURE = 1
+
+    // Stores the URI of the photo currently being captured
     private lateinit var photoUri: Uri
 
+    // Request code used when asking the user for location permissions
     private val LOCATION_PERMISSION_REQUEST_CODE = 1000
 
+    // Data class representing a photo and its location
     data class PhotoMarker(val uri: Uri, val location: LatLng)
+
+    // List of all photo markers currently on the map
     private val photoMarkers = mutableListOf<PhotoMarker>()
 
+    // Location callback object for receiving periodic location updates
     private lateinit var locationCallback: LocationCallback
-    private lateinit var locationRequest: LocationRequest
-    private var liveLocationMarker: Marker? = null
 
+    // Configuration for how often to request location updates
+    private lateinit var locationRequest: LocationRequest
+
+    // A reference to the currently displayed live location marker on the map
+    private var liveLocationMarker: Marker? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.CAMERA), 200)
+        }
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -107,6 +156,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+
+        mMap.setOnMarkerClickListener { marker ->
+            showMarkerEditDialog(marker)
+            true
+        }
+
+
         checkAndRequestLocationPermission()
 
         photoMarkers.forEach { marker ->
@@ -126,6 +182,45 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+
+
+    private fun showMarkerEditDialog(marker: Marker) {
+        val layout = LinearLayout(this)
+        layout.orientation = LinearLayout.VERTICAL
+
+        val titleBox = EditText(this)
+        titleBox.hint = "Enter Title"
+        titleBox.setText(marker.title)
+
+        val snippetBox = EditText(this)
+        snippetBox.hint = "Enter Snippet"
+        snippetBox.setText(marker.snippet)
+
+        layout.addView(titleBox)
+        layout.addView(snippetBox)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Edit Marker Info")
+            .setView(layout)
+            .setPositiveButton("Save") { _, _ ->
+                marker.title = titleBox.text.toString()
+                marker.snippet = snippetBox.text.toString()
+                marker.showInfoWindow()
+            }
+            .setNeutralButton("View Photo") { _, _ ->
+                val uri = marker.tag as? Uri
+                if (uri != null) {
+                    val intent = Intent(this, FullPhotoActivity::class.java)
+                    intent.putExtra("imageUri", uri)
+                    startActivity(intent)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        dialog.show()
+    }
+
 
     private fun checkAndRequestLocationPermission() {
         if (ContextCompat.checkSelfPermission(
@@ -167,7 +262,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             // Show the initial location once
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 val userLatLng = if (location != null) {
-                    LatLng(location.latitude, location.longitude)
+                   LatLng(location.latitude, location.longitude)
+                   // LatLng(39.9042, 116.4074) // Kunshan, China
+
                 } else {
                     // Fallback for emulator/grading
                     LatLng(31.3856, 120.9818) // Kunshan, China
@@ -253,22 +350,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             Toast.makeText(this, "Photo captured!", Toast.LENGTH_SHORT).show()
 
-            // Show thumbnail preview
-            binding.imageThumbnail.setImageURI(photoUri)
-            binding.imageThumbnail.visibility = View.VISIBLE
-
-            // Get user location and add marker to the map
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     val latLng = LatLng(location.latitude, location.longitude)
-                    addPhotoMarker(photoUri, latLng)  // You'll define this function next
+                    addPhotoMarker(photoUri, latLng)
                 } else {
                     Toast.makeText(this, "Location unavailable", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
-
 
 
 
@@ -297,5 +388,7 @@ private fun addPhotoMarker(uri: Uri, location: LatLng) {
         // Stop receiving location updates when app is in background
         fusedLocationClient.removeLocationUpdates(locationCallback)
     }
+
+
 
 }

@@ -1,14 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.campusmaplogger">
-    <!-- Required permissions -->
+
+    <!-- 🔐 Permissions required by the app -->
+
+    <!-- Access fine-grained GPS location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- Access approximate (network-based) location -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Required for internet access (for Google Maps API, location services, etc.) -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Required to launch the camera via intent -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Allow writing files to external storage (for saving photos); maxSdkVersion = 28 due to scoped storage in Android 10+ -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+
+    <!-- Allow reading files from external storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
@@ -18,24 +31,29 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar">
+
+        <!-- 📷 Activity for displaying full-size image preview after capturing a photo -->
         <activity
             android:name=".FullPhotoActivity"
             android:exported="false" />
-        <!-- Google Maps API key -->
+
+        <!-- 🗺️ Google Maps API Key (loaded securely from secrets.properties) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
+        <!-- 🌍 Main map activity: shows the map and handles photo capture -->
         <activity
             android:name=".MapsActivity"
             android:exported="true"
             android:label="@string/title_activity_maps">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- FileProvider for saving photos -->
+        </activity>
+
+        <!-- 📂 FileProvider to securely share photo files with the camera intent -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -46,8 +64,5 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-
-
     </application>
-
 </manifest>

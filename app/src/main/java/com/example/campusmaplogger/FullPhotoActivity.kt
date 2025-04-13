@@ -1,26 +1,36 @@
-package com.example.campusmaplogger
-
-import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-
-
 import android.net.Uri
-
+import android.os.Bundle
 import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
+import com.example.campusmaplogger.databinding.ActivityFullPhotoBinding
 
 class FullPhotoActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityFullPhotoBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_full_photo)
+        binding = ActivityFullPhotoBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        val imageView = findViewById<ImageView>(R.id.fullImageView)
-        val imageUri = intent.getParcelableExtra<Uri>("imageUri")
+        val imageUri = intent.getStringExtra("imageUri")?.let { Uri.parse(it) }
 
         imageUri?.let {
-            imageView.setImageURI(it)
+            binding.fullImageView.setImageURI(it)
+        }
+
+        // Confirm button sends result
+        binding.btnConfirm.setOnClickListener {
+            val returnIntent = intent
+            returnIntent.putExtra("confirmedUri", imageUri.toString())
+            setResult(RESULT_OK, returnIntent)
+            finish()
+        }
+
+        // Cancel button discards
+        binding.btnCancel.setOnClickListener {
+            setResult(RESULT_CANCELED)
+            finish()
         }
     }
 }
